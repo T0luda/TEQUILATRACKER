@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E8A33D">
+<title>TEQUILA Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#FBF3E7;
+    --surface:#FFFDF9;
+    --surface-2:#F3E7D6;
+    --ink:#2B211B;
+    --ink-soft:#6B5D52;
+    --accent:#E8A33D;
+    --accent-ink:#4A2E08;
+    --accent-2:#8A5A2B;
+    --line:#E7D9C3;
+    --good:#6E9B68;
+    --good-bg:#E9F1E5;
+    --warn:#C6503F;
+    --warn-bg:#FBE6E1;
+    --radius-lg:26px;
+    --radius-md:16px;
+    --radius-sm:10px;
+    --shadow-sm:0 2px 8px rgba(43,33,27,.08);
+    --shadow-md:0 10px 28px rgba(43,33,27,.14);
+    --font-display:'Fredoka',system-ui,sans-serif;
+    --font-body:'Inter',system-ui,sans-serif;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(96px + env(safe-area-inset-bottom));
+  }
+  h1,h2{ font-family:var(--font-display); margin:0; font-weight:600; }
+  button{ font-family:inherit; }
+  ol,ul{ margin:0; padding:0; list-style:none; }
+  .hidden{ display:none !important; }
+  :focus-visible{ outline:3px solid var(--accent-2); outline-offset:2px; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
+
+  .app{ max-width:480px; margin:0 auto; padding:16px 18px 8px; }
+
+  /* --- Horní lišta --- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:6px 0 0px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{ font-size:2rem; line-height:1; }
+  .brand h1{ font-size:1.6rem; color:var(--ink); text-transform: uppercase; letter-spacing: 1px;}
+  .brand .tagline{ margin:2px 0 0; font-size:.8rem; color:var(--ink-soft); }
+
+  .user-chip{
+    display:flex; align-items:center; gap:8px;
+    background:var(--surface-2); border:none; border-radius:999px;
+    padding:8px 14px; cursor:pointer; box-shadow:var(--shadow-sm);
+    font-weight:600; color:var(--ink); min-height:40px;
+  }
+  .user-points{ color:var(--accent-ink); font-weight:700; white-space:nowrap; }
+
+  .offline-pill{
+    position:fixed; top:10px; left:50%; transform:translateX(-50%);
+    background:var(--warn); color:#fff; font-size:.78rem; font-weight:600;
+    padding:6px 14px; border-radius:999px; box-shadow:var(--shadow-md);
+    z-index:50;
+  }
+
+  /* --- ZOE Avatar --- */
+  #cat-avatar-container {
+    text-align: center;
+    margin: 10px 0 20px 0;
+  }
+  #cat-face {
+    font-size: 11.5rem;
+    line-height: 1;
+    display: inline-block;
+    transition: transform 0.3s ease;
+  }
+
+  /* --- Custom Ikony jídla --- */
+  .food-img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    vertical-align: middle;
+  }
+  .food-img-small {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+  }
+
+  /* --- Sekce --- */
+  .section{ padding:18px 0; border-top:1px solid var(--line); }
+  .section:first-of-type{ border-top:none; }
+  .section-title{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-bottom:14px;
+  }
+  .section-title h2{ font-size:1.08rem; display:flex; align-items:center; gap:8px; }
+  .btn-text{
+    background:none; border:none; color:var(--accent-ink); font-weight:600;
+    font-size:.85rem; padding:6px 4px; cursor:pointer; border-radius:6px;
+  }
+
+  /* --- Stav dnešních krmení --- */
+  .meal-row{ display:flex; gap:8px; align-items: center; justify-content: center; }
+  .meal-pill{
+    border:2px solid transparent;
+    border-radius:var(--radius-md); padding:10px 6px; text-align:center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .meal-pill .icon{ font-size:1.2rem; display:block; margin-bottom: 2px;}
+  .meal-pill .label{ font-size:.78rem; font-weight:600; display:block; }
+  .meal-pill .sub{ font-size:.68rem; color:var(--ink-soft); display:block; margin-top:2px; line-height: 1.2;}
+  
+  .meal-pill.is-active-green, .meal-pill.is-active-red {
+    flex: 3.5;
+    transform: scale(1.05);
+    box-shadow: var(--shadow-sm);
+    opacity: 1;
+  }
+  .meal-pill.is-inactive-yellow {
+    flex: 1;
+    background: #FCEFD8;
+    opacity: 0.6;
+    transform: scale(0.95);
+    padding: 10px 2px;
+  }
+  
+  .meal-pill.is-inactive-yellow .icon { font-size: 1rem; }
+  .meal-pill.is-inactive-yellow .label { font-size: 0.65rem; }
+  .meal-pill.is-inactive-yellow .sub { font-size: 0.6rem; }
+
+  .meal-pill.is-active-green { background: var(--good-bg); border-color: var(--good); }
+  .meal-pill.is-active-green .sub { color: var(--good); font-weight: 700; }
+  .meal-pill.is-active-red { background: var(--warn-bg); border-color: var(--warn); }
+  .meal-pill.is-active-red .sub { color: var(--warn); font-weight: 700; }
+
+  /* --- Sklad --- */
+  .alert-banner{
+    background:var(--warn-bg); color:var(--warn); border-radius:var(--radius-md);
+    padding:10px 14px; font-size:.85rem; font-weight:600; margin-bottom:14px; text-align: center;
+  }
+  .stock-item{ margin-bottom:16px; }
+  .stock-label{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:.92rem; font-weight:600; margin-bottom:6px;
+  }
+  .stock-label .qty{ font-weight:700; color:var(--ink); }
+  .stock-bar{ height:10px; border-radius:999px; background:var(--line); overflow:hidden; }
+  .stock-fill{ height:100%; background:var(--accent); border-radius:999px; transition:width .4s ease; }
+  .stock-fill.granule{ background:var(--accent-2); }
+  .stock-fill.is-low{ background:var(--warn); }
+
+  /* --- Historie --- */
+  .history-list{ position:relative; }
+  .history-item{ position:relative; padding-left:30px; padding-bottom:16px; }
+  .history-item::before{
+    content:''; position:absolute; left:9px; top:22px; bottom:-4px; width:2px;
+    background:var(--line);
+  }
+  .history-item:last-child::before{ display:none; }
+  .history-marker{
+    position:absolute; left:0; top:0; width:20px; height:20px; border-radius:50%;
+    background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+    font-size:.72rem;
+  }
+  .history-text{ font-size:.9rem; }
+  .history-time{ font-size:.76rem; color:var(--ink-soft); margin-top:1px; }
+  .empty-note{ color:var(--ink-soft); font-size:.9rem; }
+
+  /* --- Tlačítka a Toast --- */
+  .fab{
+    position:fixed; left:18px; right:18px; bottom:calc(16px + env(safe-area-inset-bottom));
+    max-width:444px; margin:0 auto; display:flex; align-items:center; justify-content:center;
+    gap:10px; background:var(--accent); color:var(--accent-ink); border:none;
+    border-radius:999px; padding:16px; font-family:var(--font-display);
+    font-size:1.05rem; font-weight:600; box-shadow:var(--shadow-md); cursor:pointer;
+    min-height:56px; z-index:20;
+  }
+  .toast{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:11px 18px; border-radius:999px;
+    font-size:.88rem; font-weight:600; box-shadow:var(--shadow-md); z-index:80;
+  }
+  .toast.is-error{ background:var(--warn); }
+  .toast.is-success{ background:var(--good); }
+
+  /* --- Modály --- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(43,33,27,.45);
+    display:flex; align-items:flex-end; justify-content:center; z-index:60;
+  }
+  @media (min-width:520px){ .modal-backdrop{ align-items:center; padding:20px; } }
+  .modal-panel{
+    background:var(--surface); width:100%; max-width:440px;
+    border-radius:24px 24px 0 0; padding:24px 22px calc(22px + env(safe-area-inset-bottom));
+  }
+  @media (min-width:520px){ .modal-panel{ border-radius:var(--radius-lg); } }
+  .modal-panel h3{ font-family:var(--font-display); font-size:1.2rem; margin:0 0 4px; }
+  .modal-sub{ color:var(--ink-soft); font-size:.86rem; margin:0 0 18px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:.84rem; font-weight:600; margin-bottom:6px; }
+  .field input, .field select{
+    width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1.5px solid var(--line);
+    background:var(--bg); font-size:1rem; font-family:inherit; color:var(--ink);
+  }
+  .choice-row{ display:flex; gap:10px; margin-bottom:16px; }
+  .choice-btn{
+    flex:1; background:var(--surface-2); border:2px solid transparent; border-radius:var(--radius-md);
+    padding:14px 8px; text-align:center; cursor:pointer;
+  }
+  .choice-btn .icon{ font-size:1.6rem; display:block; margin-bottom:4px; }
+  .choice-btn .name{ font-weight:600; font-size:.92rem; display:block; }
+  .choice-btn .sub{ font-size:.85rem; font-weight:600; color:var(--accent-ink); display:block; margin-top:2px; }
+  .choice-btn.is-selected{ border-color:var(--accent); background:#FCEFD8; }
+  .choice-btn.is-disabled{ opacity:.45; cursor:not-allowed; }
+  
+  .warning-note{
+    background:var(--warn-bg); color:var(--warn); border-radius:var(--radius-sm);
+    padding:10px 12px; font-size:.82rem; font-weight:600; margin-bottom:16px;
+  }
+  .modal-actions{ display:flex; gap:10px; margin-top:6px; }
+  .btn-primary, .btn-secondary{
+    flex:1; border:none; border-radius:999px; padding:14px; font-weight:600;
+    font-size:.95rem; cursor:pointer; min-height:48px;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-secondary{ background:var(--surface-2); color:var(--ink); }
+  .field-error{ color:var(--warn); font-size:.8rem; margin-top:6px; display:none; }
+  .field-error.is-visible{ display:block; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">🐾</span>
+      <div>
+        <h1>TEQUILA</h1>
+        <p class="tagline">Kdo dnes nakrmil a čím</p>
+      </div>
+    </div>
+    <button id="user-chip" class="user-chip" type="button" aria-haspopup="dialog">
+      <span id="user-name-label">…</span>
+      <span class="user-points">⭐ <span id="user-points-label">0</span></span>
+    </button>
+  </header>
+
+  <div id="cat-avatar-container">
+    <div id="cat-face">😸</div>
+  </div>
+
+  <main>
+    <section class="section" aria-labelledby="status-heading">
+      <div class="section-title">
+        <h2 id="status-heading"><span aria-hidden="true">🐾</span> Dnes</h2>
+      </div>
+      <div class="meal-row" id="meal-row"><!-- generováno přes JS --></div>
+    </section>
+
+    <section class="section" aria-labelledby="inventory-heading">
+      <div class="section-title">
+        <h2 id="inventory-heading"><span aria-hidden="true">🐾</span> Sklad</h2>
+        <button id="btn-restock" class="btn-text" type="button">Doplnit zásoby</button>
+      </div>
+      <div id="inventory-alert" class="alert-banner hidden" role="status"></div>
+
+      <div class="stock-item">
+        <div class="stock-label">
+          <span>
+            <img src="obrázek_2026-09-15_173022921-removebg-preview.ico" class="food-img-small" alt="Kapsičky"> Kapsičky
+          </span>
+          <span class="qty" id="stock-kapsicky-val">–</span>
+        </div>
+        <div class="stock-bar"><div id="stock-kapsicky-fill" class="stock-fill"></div></div>
+      </div>
+      <div class="stock-item">
+        <div class="stock-label">
+          <span>
+            <img src="obrázek_2026-09-15_172808444-removebg-preview.ico" class="food-img-small" alt="Granule"> Granule
+          </span>
+          <span class="qty" id="stock-granule-val">–</span>
+        </div>
+        <div class="stock-bar"><div id="stock-granule-fill" class="stock-fill granule"></div></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="history-heading">
+      <div class="section-title">
+        <h2 id="history-heading"><span aria-hidden="true">🐾</span> Historie</h2>
+      </div>
+      <ol id="history-list" class="history-list"></ol>
+      <p id="history-empty" class="empty-note hidden">Zatím žádná historie.</p>
+    </section>
+  </main>
+</div>
+
+<button id="btn-feed" class="fab" type="button">
+  <span class="icon" aria-hidden="true">🐟</span> Nakrmit
+</button>
+
+<div id="toast-container" aria-live="polite"></div>
+<div id="offline-pill" class="offline-pill hidden">Offline – čekám na připojení</div>
+
+<!-- Modály -->
+<div id="modal-username" class="modal-backdrop hidden" role="dialog">
+  <div class="modal-panel">
+    <h3 id="username-title">Vítej! Jak se jmenuješ?</h3>
+    <div class="field">
+      <label for="username-input">Jméno</label>
+      <input type="text" id="username-input" maxlength="30" autocomplete="off">
+      <p class="field-error" id="username-error">Zadej prosím jméno.</p>
+    </div>
+    <div class="modal-actions"><button id="username-submit" class="btn-primary" type="button">Pokračovat</button></div>
+  </div>
+</div>
+
+<div id="modal-feed" class="modal-backdrop hidden" role="dialog">
+  <div class="modal-panel">
+    <h3 id="feed-title">Nakrmit TEQUILU</h3>
+    <p class="modal-sub" id="feed-slot-note">Aktuální krmení: …</p>
+    <p id="feed-warning" class="warning-note hidden"></p>
+    <div class="choice-row">
+      <button class="choice-btn" id="choice-kapsicka" type="button" data-food="kapsicka">
+        <span class="icon" aria-hidden="true"><img src="obrázek_2026-09-15_173022921-removebg-preview.ico" class="food-img"></span>
+        <span class="name">Kapsička</span>
+        <span class="sub" id="choice-kapsicka-sub">–</span>
+      </button>
+      <button class="choice-btn" id="choice-granule" type="button" data-food="granule">
+        <span class="icon" aria-hidden="true"><img src="obrázek_2026-09-15_172808444-removebg-preview.ico" class="food-img"></span>
+        <span class="name">Granule</span>
+        <span class="sub" id="choice-granule-sub">–</span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button id="feed-cancel" class="btn-secondary" type="button">Zrušit</button>
+      <button id="feed-confirm" class="btn-primary" type="button" disabled>Nakrmit</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-restock" class="modal-backdrop hidden" role="dialog">
+  <div class="modal-panel">
+    <h3 id="restock-title">Doplnit zásoby</h3>
+    <div class="choice-row">
+      <button class="choice-btn is-selected" id="restock-choice-kapsicka" type="button" data-food="kapsicka">
+        <span class="icon" aria-hidden="true"><img src="obrázek_2026-09-15_173022921-removebg-preview.ico" class="food-img"></span>
+        <span class="name">Kapsička</span>
+      </button>
+      <button class="choice-btn" id="restock-choice-granule" type="button" data-food="granule">
+        <span class="icon" aria-hidden="true"><img src="obrázek_2026-09-15_172808444-removebg-preview.ico" class="food-img"></span>
+        <span class="name">Granule</span>
+      </button>
+    </div>
+    <div class="field">
+      <label for="restock-qty" id="restock-qty-label">Počet kusů</label>
+      <input type="number" id="restock-qty" min="0.1" step="1">
+      <p class="field-error" id="restock-qty-error">Zadej množství větší než 0.</p>
+    </div>
+    <div class="field">
+      <label for="restock-price">Cena (Kč)</label>
+      <input type="number" id="restock-price" min="0" step="1">
+    </div>
+    <div class="modal-actions">
+      <button id="restock-cancel" class="btn-secondary" type="button">Zrušit</button>
+      <button id="restock-confirm" class="btn-primary" type="button">Uložit nákup</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, runTransaction, serverTimestamp, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+
+// !!! DOPLŇ SI SVOJE KLÍČE Z FIREBASE !!!
+const firebaseConfig = {
+  apiKey: "AIzaSyDhil-9V6XR04FKVk6jpA8xR_r6NAlZ0Ok",
+  authDomain: "tequila-tracker.firebaseapp.com",
+  projectId: "tequila-tracker",
+  storageBucket: "tequila-tracker.firebasestorage.app",
+  messagingSenderId: "703515500329",
+  appId: "1:703515500329:web:1b0d1899c06bfaa011e138",
+  databaseURL: "https://tequila-tracker-default-rtdb.europe-west1.firebasedatabase.app/",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const inventoryRef = ref(db, "inventory");
+const logRef = ref(db, "log");
+const connectedRef = ref(db, ".info/connected");
+
+/* --- Konfigurace --- */
+const MEAL_SLOTS = [
+  { id: "snidane", label: "Snídaně", icon: "🌅", startMin: 0,   endMin: 601 },
+  { id: "obed",    label: "Oběd",    icon: "☀️", startMin: 601, endMin: 960 },
+  { id: "vecere",  label: "Večeře",  icon: "🌙", startMin: 960, endMin: 1440 },
+];
+
+const imgKapsicka = `<img src="obrázek_2026-09-15_173022921-removebg-preview.ico" class="food-img-small">`;
+const imgGranule = `<img src="obrázek_2026-09-15_172808444-removebg-preview.ico" class="food-img-small">`;
+
+const FOOD_TYPES = {
+  kapsicka: { label: "Kapsička", icon: imgKapsicka, invKey: "kapsicky",  perFeed: 1,  unit: "ks", lowThreshold: 5 },
+  granule:  { label: "Granule",  icon: imgGranule, invKey: "granule_g", perFeed: 100, unit: "g",  lowThreshold: 500 },
+};
+const STOCK_BAR_MAX = { kapsicky: 40, granule_g: 5000 };
+
+/* --- Pomocné funkce --- */
+const $ = (sel) => document.querySelector(sel);
+
+function getCurrentMealSlot(date = new Date()) {
+  const m = date.getHours() * 60 + date.getMinutes();
+  return MEAL_SLOTS.find(s => m >= s.startMin && m < s.endMin) || null;
+}
+
+function isSameLocalDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatNumber(n) { return Number(n).toLocaleString("cs-CZ"); }
+function formatGranule(g) { return g >= 1000 ? `${(g / 1000).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} kg` : `${formatNumber(g)} g`; }
+function formatTimestamp(ts) {
+  if (!ts) return "";
+  const d = new Date(ts), now = new Date();
+  const time = d.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  if (isSameLocalDay(d, now)) return `dnes ${time}`;
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  if (isSameLocalDay(d, yest)) return `včera ${time}`;
+  return `${d.toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" })} ${time}`;
+}
+function showToast(msg, kind = "default") {
+  const c = $("#toast-container"), el = document.createElement("div");
+  el.className = `toast${kind==="error"?" is-error":""}${kind==="success"?" is-success":""}`;
+  el.textContent = msg; c.appendChild(el); setTimeout(() => el.remove(), 2600);
+}
+
+/* --- Uživatel --- */
+let currentUser = localStorage.getItem("catapp_username") || "";
+let currentPoints = parseInt(localStorage.getItem("catapp_points") || "0", 10) || 0;
+function renderUserChip() { $("#user-name-label").textContent = currentUser || "Nastavit jméno"; $("#user-points-label").textContent = formatNumber(currentPoints); }
+function addPoint() { currentPoints += 1; localStorage.setItem("catapp_points", String(currentPoints)); renderUserChip(); }
+
+/* --- Modály --- */
+let lastFocus = null;
+function openModal(m) { lastFocus = document.activeElement; m.classList.remove("hidden"); }
+function closeModal(m) { m.classList.add("hidden"); if(lastFocus) lastFocus.focus(); }
+document.querySelectorAll(".modal-backdrop").forEach(b => b.addEventListener("click", e => { if(e.target===b) closeModal(b); }));
+$("#user-chip").addEventListener("click", () => { $("#username-input").value = currentUser; openModal($("#modal-username")); });
+$("#username-submit").addEventListener("click", () => {
+  const v = $("#username-input").value.trim();
+  if(!v) return $("#username-error").classList.add("is-visible");
+  currentUser = v; localStorage.setItem("catapp_username", v); renderUserChip(); closeModal($("#modal-username"));
+});
+
+/* --- DB Data --- */
+let latestInventory = { kapsicky: 0, granule_g: 0 }, latestEntries = [];
+onValue(inventoryRef, snap => { latestInventory = snap.val() || { kapsicky: 0, granule_g: 0 }; renderInventory(); renderFeedChoiceAvailability(); });
+
+onValue(query(logRef, orderByChild("timestamp"), limitToLast(20)), snap => {
+  const arr = []; 
+  
+  // OPRAVA: Tady chyběly složené závorky {}, takže to Firebase zrušilo po prvním záznamu
+  snap.forEach(c => { 
+    arr.push({ key: c.key, ...c.val() }); 
+  }); 
+  
+  arr.reverse();
+  latestEntries = arr; renderHistory(arr); renderMealStatus(arr);
+});
+
+onValue(connectedRef, snap => $("#offline-pill").classList.toggle("hidden", !!snap.val()));
+
+/* --- Render Skladu a Historie --- */
+function renderInventory() {
+  const k = latestInventory.kapsicky ?? 0, g = latestInventory.granule_g ?? 0;
+  
+  $("#stock-kapsicky-val").textContent = `${formatNumber(k)} ks`; $("#stock-granule-val").textContent = formatGranule(g);
+  $("#stock-kapsicky-fill").style.width = `${Math.min(100, (k/STOCK_BAR_MAX.kapsicky)*100)}%`;
+  $("#stock-granule-fill").style.width = `${Math.min(100, (g/STOCK_BAR_MAX.granule_g)*100)}%`;
+  
+  const alertEl = $("#inventory-alert");
+  const lowItems = [];
+  if (k < FOOD_TYPES.kapsicka.lowThreshold) lowItems.push("kapsičky");
+  if (g < FOOD_TYPES.granule.lowThreshold) lowItems.push("granule");
+  if (lowItems.length) {
+    alertEl.textContent = `⚠️ Dochází ti: ${lowItems.join(" a ")}. Je čas doplnit zásoby!`;
+    alertEl.classList.remove("hidden");
+  } else {
+    alertEl.classList.add("hidden");
+  }
+}
+
+function renderHistory(entries) {
+  const list = $("#history-list"); list.innerHTML = "";
+  if(!entries.length) return $("#history-empty").classList.remove("hidden");
+  $("#history-empty").classList.add("hidden");
+  
+  entries.slice(0, 20).forEach(e => {
+    const f = FOOD_TYPES[e.foodType], li = document.createElement("li"); li.className = "history-item";
+    
+    // OPRAVA DETAILNÍHO LOGU PRO NÁKUPY I KRMENÍ
+    let txt = "";
+    if (e.type === "feed") {
+      txt = `<strong>${e.user}</strong> nakrmil(a) TEQUILU – ${f ? f.label.toLowerCase() : ""}`;
+    } else if (e.type === "restock") {
+      const qty = e.unit === "kg" ? `${e.quantity} kg` : `${e.quantity} ks`;
+      let priceTxt = e.price ? ` (${e.price} Kč)` : "";
+      txt = `<strong>${e.user}</strong> doplnil(a): ${qty} ${f ? f.label.toLowerCase() : ""}${priceTxt}`;
+    }
+    
+    li.innerHTML = `<span class="history-marker">${e.type==="restock"?"🛒":(f?.icon||"🐾")}</span><div class="history-text">${txt}</div><div class="history-time">${formatTimestamp(e.timestamp)}</div>`;
+    list.appendChild(li);
+  });
+}
+
+/* --- Render Krmení a Avatara --- */
+window.zoeIsHappy = false;
+window.zoeNextMealText = "";
+
+function renderMealStatus(entries) {
+  const now = new Date(), currentMins = now.getHours() * 60 + now.getMinutes();
+  const currentSlot = getCurrentMealSlot(now);
+  const todaysFeeds = entries.filter(e => e.type === "feed" && e.timestamp && isSameLocalDay(new Date(e.timestamp), now));
+  
+  const row = $("#meal-row"); row.innerHTML = "";
+  let catIsHappy = false;
+
+  for (let i = 0; i < MEAL_SLOTS.length; i++) {
+    const slot = MEAL_SLOTS[i], match = todaysFeeds.find(e => e.mealSlot === slot.id);
+    const pill = document.createElement("div"); pill.className = "meal-pill";
+    let subText = "čeká";
+
+    if (currentSlot && currentSlot.id === slot.id) {
+      let isFedAndHappy = !!match;
+
+      if (!isFedAndHappy) {
+        const prevSlot = i > 0 ? MEAL_SLOTS[i-1] : MEAL_SLOTS[MEAL_SLOTS.length - 1];
+        let prevFeed = todaysFeeds.find(e => e.mealSlot === prevSlot.id);
+        
+        if (prevFeed) {
+          const fTime = new Date(prevFeed.timestamp), fMins = fTime.getHours() * 60 + fTime.getMinutes();
+          if (fMins >= (prevSlot.endMin - 30) && fMins <= prevSlot.endMin) {
+            if (currentMins < (slot.startMin + 120)) {
+              isFedAndHappy = true;
+              subText = "Najezená z minula";
+            }
+          }
+        }
+      }
+
+      if (isFedAndHappy) {
+        pill.classList.add("is-active-green");
+        catIsHappy = true;
+        if (match) subText = `${match.user}, ${formatTimestamp(match.timestamp)}`;
+      } else {
+        pill.classList.add("is-active-red");
+        subText = "Má hlad!";
+      }
+      
+      const nextSlotObj = (i + 1 < MEAL_SLOTS.length) ? MEAL_SLOTS[i+1] : MEAL_SLOTS[0];
+      const nHr = Math.floor(nextSlotObj.startMin / 60);
+      const nMin = (nextSlotObj.startMin % 60).toString().padStart(2, '0');
+      window.zoeNextMealText = `${nextSlotObj.label} (od ${nHr}:${nMin})`;
+
+    } else {
+      pill.classList.add("is-inactive-yellow");
+      if (match) {
+        const d = new Date(match.timestamp);
+        subText = d.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }); 
+      }
+    }
+
+    pill.innerHTML = `<span class="icon">${slot.icon}</span><span class="label">${slot.label}</span><span class="sub">${subText}</span>`;
+    row.appendChild(pill);
+  }
+
+  window.zoeIsHappy = catIsHappy;
+  $("#cat-face").textContent = catIsHappy ? "😸" : "😾";
+}
+
+/* --- Krmení Logika --- */
+let selFood = null;
+function renderFeedChoiceAvailability() {
+  Object.keys(FOOD_TYPES).forEach(k => {
+    const f = FOOD_TYPES[k];
+    const out = (latestInventory[f.invKey] ?? 0) < f.perFeed;
+    $(`#choice-${k}`).classList.toggle("is-disabled", out);
+    $(`#choice-${k}-sub`).textContent = out ? "Není skladem" : `- ${f.perFeed} ${f.unit}`;
+  });
+}
+$("#btn-feed").addEventListener("click", () => {
+  if(!currentUser) return openModal($("#modal-username"));
+  selFood = null; document.querySelectorAll("#modal-feed .choice-btn").forEach(b => b.classList.remove("is-selected")); 
+  $("#feed-confirm").disabled = true;
+  
+  const warnEl = $("#feed-warning");
+  if (window.zoeIsHappy) {
+    warnEl.textContent = `⚠️ TEQUILA už je sytá! Další čas krmení je až: ${window.zoeNextMealText}. Opravdu jí chceš dát znovu?`;
+    warnEl.classList.remove("hidden");
+  } else {
+    warnEl.classList.add("hidden");
+  }
+  
+  openModal($("#modal-feed")); renderFeedChoiceAvailability();
+});
+["kapsicka", "granule"].forEach(k => $(`#choice-${k}`).addEventListener("click", e => {
+  if(e.currentTarget.classList.contains("is-disabled")) return;
+  selFood = k; document.querySelectorAll("#modal-feed .choice-btn").forEach(b => b.classList.remove("is-selected"));
+  e.currentTarget.classList.add("is-selected"); $("#feed-confirm").disabled = false;
+}));
+$("#feed-cancel").addEventListener("click", () => closeModal($("#modal-feed")));
+$("#feed-confirm").addEventListener("click", async () => {
+  if(!selFood) return; $("#feed-confirm").disabled = true;
+  try {
+    const f = FOOD_TYPES[selFood], s = getCurrentMealSlot();
+    const res = await runTransaction(ref(db, `inventory/${f.invKey}`), c => (c??0) < f.perFeed ? undefined : (c - f.perFeed));
+    if(!res.committed) throw new Error("Malo zasob");
+    await push(logRef, { type: "feed", user: currentUser, foodType: selFood, amount: f.perFeed, mealSlot: s?s.id:"mimo", timestamp: serverTimestamp() });
+    addPoint(); closeModal($("#modal-feed")); showToast("TEQUILA byla nakrmena! 🐾", "success");
+  } catch(e) { showToast("Chyba: Zkontroluj zásoby a net", "error"); }
+  $("#feed-confirm").disabled = false;
+});
+
+/* --- Restock Logika --- */
+let selRestock = "kapsicka";
+$("#btn-restock").addEventListener("click", () => {
+  if(!currentUser) return openModal($("#modal-username"));
+  openModal($("#modal-restock"));
+});
+["kapsicka", "granule"].forEach(k => $(`#restock-choice-${k}`).addEventListener("click", e => {
+  selRestock = k; document.querySelectorAll("#modal-restock .choice-btn").forEach(b => b.classList.remove("is-selected"));
+  e.currentTarget.classList.add("is-selected");
+  $("#restock-qty-label").textContent = k==="granule" ? "Kilogramy" : "Počet kusů";
+}));
+$("#restock-cancel").addEventListener("click", () => closeModal($("#modal-restock")));
+$("#restock-confirm").addEventListener("click", async () => {
+  const q = parseFloat($("#restock-qty").value.replace(",", "."));
+  const p = parseFloat($("#restock-price").value.replace(",", ".")) || 0; // TADY JSEM VRÁTIL CENU
+  
+  if(!q || q<=0) return $("#restock-qty-error").classList.add("is-visible");
+  $("#restock-confirm").disabled = true;
+  try {
+    const f = FOOD_TYPES[selRestock], add = selRestock==="granule" ? Math.round(q*1000) : Math.round(q);
+    await runTransaction(ref(db, `inventory/${f.invKey}`), c => (c??0) + add);
+    await push(logRef, { type: "restock", user: currentUser, foodType: selRestock, quantity: q, unit: selRestock==="granule"?"kg":"ks", price: p, timestamp: serverTimestamp() });
+    closeModal($("#modal-restock")); showToast("Zásoby doplněny 🛒", "success");
+  } catch(e) { showToast("Chyba při ukládání", "error"); }
+  $("#restock-confirm").disabled = false;
+});
+renderUserChip(); if(!currentUser) openModal($("#modal-username"));
+</script>
+</body>
+</html>
